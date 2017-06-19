@@ -18,12 +18,27 @@ library(RColorBrewer)
 load("lmop.Rda")
 load("Waste.By.Year.Rda")
 load("Expenditure.Rda")
+load("weightbygrp.Rda")
+load("weightbycate.Rda")
+load("heatmapdat.Rda")
 
+#Define color scheme
 col_p1<-brewer.pal(8,"Dark2")[1:4]
 col_p2<-brewer.pal(9, "BuPu")
+col_set3<-brewer.pal(12, "Set3")
+col_BuPu<-brewer.pal(9, "BuPu")
+
+#Define font
+f1 <- list(
+    family = "verdana",
+    size = 14,
+    color = "black"
+)
+
 
 # Define server logic required to draw a plot
 shinyServer(function(input, output) {
+    #########################TAB 2################################
     #Plot1
   output$plot1 <- renderPlotly({
       #Screen dataset by filters
@@ -109,5 +124,56 @@ shinyServer(function(input, output) {
           layout(xaxis=list(title="Landfill Open Year"), 
                  yaxis=list(title="Waste (Tons)")) 
       p2c
+  })
+  
+  ###########################TAB 3##################################
+  #Waste by Cateogry
+  output$barplot <- renderPlotly({
+      text<-c("28.07%", "43.01%", "28.92%", 
+              "26.35%", "38.05%", "35.60%", 
+              "32.70%", "40.60%", "26.70%")
+      x<-c(2012.75, 2013, 2013.25, 2013.75, 2014, 2014.25, 2014.75, 2015, 2015.25)
+      y<-c(480000, 750000, 500000, 580000, 850000, 790000, 600000,750000, 480000)
+      plot_ly(data=weight2b, x=~Year, y=~Landfill, name="Landfill", type="bar", marker=list(color=col_set3[9])) %>%
+          add_trace(y=~Recycled, name="Recycled", marker=list(color=col_set3[3])) %>%
+          add_trace(y=~Resued, name="Resued",marker=list(color=col_set3[5])) %>%
+          layout(xaxis=list(title="Year", autotick=F, titlefont=f1), 
+                 yaxis=list(title="Weight (lbs)")) %>%
+          add_annotations(text = text,
+                          x = x,
+                          y = y,
+                          xref = "x",
+                          yref = "y",
+                          font = list(family = 'Arial',
+                                      size = 10,
+                                      color = I("Black")),
+                          showarrow = FALSE)
+  })
+  
+  #When do people discard material
+  output$heatmap <- renderPlotly({
+      plot_ly(x=c(1,2,3,4), 
+              y=c(2013, 2014, 2015),
+              z=weight3c, type="heatmap", colors=col_BuPu) %>%
+          layout(xaxis=list(title="Quarter", autotick=F, titlefont=f1), 
+                 yaxis=list(title="Year", autotick=F))
+  })
+  
+  
+  #Waste by Material   
+  output$pieplot <- renderPlotly({
+      
+      piedat<-filter(weightbygrp, Year %in% input$yr & 
+                         Sub.Category %in% input$cate)
+      
+      p<-plot_ly(data=piedat, labels=~Group, values=~Total.Weight,
+                 type="pie", hole=0.6, textposition = 'inside',
+                 textinfo = 'label+percent', 
+                 marker=list(colors=col_set3))%>%
+          layout(title="Discarded Material by Type (Lbs)",
+                 xaxis=list(showgrid=F, zeroline=F, showticklabels=F), 
+                 yaxis=list(showgrid=F, zeroline=F, showticklabels=F))
+      
+      p
   })
 })
